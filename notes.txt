@@ -13,4 +13,4 @@ To access the postgres database- docker exec -it market_postgres psql -U admin -
 To access the redis database- docker exec -it market_redis redis-cli
 
 
-pip freeze > requirements.txt
+pip freeze > requirements.tx
