@@ -11,9 +11,9 @@ const NAV_ITEMS = [
 ];
 
 const EXTERNAL_LINKS = [
-    { href: 'http://localhost:8000/docs', label: 'API Docs', icon: <HiOutlineChartBar /> },
-    { href: 'http://localhost:9090', label: 'Prometheus', icon: <SiPrometheus /> },
-    { href: 'http://localhost:3000', label: 'Grafana', icon: <SiGrafana /> },
+    { href: 'http://20.2.137.92:8000/docs', label: 'API Docs', icon: <HiOutlineChartBar /> },
+    { href: 'http://20.2.137.92:9090', label: 'Prometheus', icon: <SiPrometheus /> },
+    { href: 'http://20.2.137.92:3000', label: 'Grafana', icon: <SiGrafana /> },
 ];
 
 export default function Sidebar() {

@@ -609,7 +609,7 @@ API SERVICE LAYER (src/api.js):
   • getCompetitors()          → GET /competitors
   • getHealth()               → GET /health
   • All functions use fetch() with JSON parsing and error handling
-  • Backend URL: http://localhost:8000
+  • Backend URL: http://20.2.137.92:8000
 
 
 ================================================================================
@@ -705,12 +705,12 @@ STEP 3: Start the frontend
   > npm run dev
 
 ACCESS POINTS:
-  • Frontend:    http://localhost:5173
-  • Backend API: http://localhost:8000
-  • Swagger Docs:http://localhost:8000/docs
-  • Metrics:     http://localhost:8000/metrics
-  • Prometheus:  http://localhost:9090
-  • Grafana:     http://localhost:3000 (admin/admin)
+  • Frontend:    http://20.2.137.92:5173
+  • Backend API: http://20.2.137.92:8000
+  • Swagger Docs:http://20.2.137.92:8000/docs
+  • Metrics:     http://20.2.137.92:8000/metrics
+  • Prometheus:  http://20.2.137.92:9090
+  • Grafana:     http://20.2.137.92:3000 (admin/admin)
 
 
 ================================================================================
@@ -719,7 +719,7 @@ ACCESS POINTS:
 
 User types "OpenAI" in the frontend → clicks "Run Pipeline"
   ↓
-Frontend sends POST http://localhost:8000/run-agent {"company_name":"OpenAI"}
+Frontend sends POST http://20.2.137.92:8000/run-agent {"company_name":"OpenAI"}
   ↓
 FastAPI validates request via Pydantic (AgentRequest schema)
   ↓

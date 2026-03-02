@@ -78,7 +78,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Verify: Open **http://localhost:8000/docs** in your browser — you should see the Swagger API docs.
+Verify: Open **http://20.2.137.92:8000/docs** in your browser — you should see the Swagger API docs.
 
 ### 6. Set Up & Start the Frontend
 
@@ -92,7 +92,7 @@ npm run dev
 
 ### 7. Open the App
 
-Open **http://localhost:5173** in your browser. You're ready to go! 🎉
+Open **http://20.2.137.92:5173** in your browser. You're ready to go! 🎉
 
 ---
 
@@ -100,11 +100,11 @@ Open **http://localhost:5173** in your browser. You're ready to go! 🎉
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| **Frontend** | http://localhost:5173 | — |
-| **Backend API** | http://localhost:8000 | — |
-| **Swagger Docs** | http://localhost:8000/docs | — |
-| **Prometheus** | http://localhost:9090 | — |
-| **Grafana** | http://localhost:3000 | admin / admin |
+| **Frontend** | http://20.2.137.92:5173 | — |
+| **Backend API** | http://20.2.137.92:8000 | — |
+| **Swagger Docs** | http://20.2.137.92:8000/docs | — |
+| **Prometheus** | http://20.2.137.92:9090 | — |
+| **Grafana** | http://20.2.137.92:3000 | admin / admin |
 
 ---
 
