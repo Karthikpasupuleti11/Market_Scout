@@ -1,19 +1,18 @@
 """
-Market Intelligence Scout — LangGraph Orchestration Builder
+Market Intelligence Scout — LangGraph Multi-Agent Orchestration (v3.0)
 
-Enterprise-grade pipeline with:
-  • Conditional edges (error branching, empty result handling)
-  • Failure exits with descriptive error state
-  • Full state tracking through every node
+Industry-grade self-contained agent architecture:
+  • Supervisor Agent   — LLM-driven dynamic routing (own planner, memory)
+  • Research Agent     — Search + Scrape + Date Filter (PARALLEL tools)
+  • Analysis Agent     — Filter + Extract + Verify + Score (PARALLEL tools)
+  • Critic Agent       — Quality review with feedback loops (own memory)
+  • Synthesis Agent    — Final report generation (own memory)
+  • Output Guardrail   — Validates report before returning to user
 
 Pipeline:
-  [Guardrails] → [Search Planner] → [Search Execution] → [Scraper Strategy]
-  → [Date Validation] → [Content Filter] → [Authority Check]
-  → [Feature Extraction] → [Verification (SBERT)] → [Confidence Scoring]
-  → [Synthesis] → DONE
-
-LangGraph controls FLOW, not intelligence.
-MCP (NVIDIA) handles LLM calls — never orchestration.
+  [Input Guardrails] → [Supervisor] ⇄ [Research | Analysis | Critic]
+                              ↓
+                      [Synthesis] → [Output Guardrail] → DONE
 """
 
 import logging
@@ -24,18 +23,14 @@ from langgraph.graph import StateGraph, END
 from graph.state import GraphState
 from observability.metrics import NODE_LATENCY, NODE_SUCCESS
 
-# ── Node Imports ───────────────────────────────────────────────────
-from nodes.guardrails import guardrails_node
-from agents.search_planner import search_planner_node
-from nodes.search_execution import search_execution_node
-from agents.scraper_strategy import scraper_strategy_node
-from nodes.date_validation import date_validation_node
-from nodes.content_filter import content_filter_node
-from nodes.authority_check import authority_check_node
-from nodes.feature_extraction import feature_extraction_node
-from nodes.verification import verification_node
-from nodes.scoring import confidence_scoring_node
-from agents.synthesis import synthesis_node
+# ── Agent Package Imports ──────────────────────────────────────────
+from guardrails.input_guardrail import guardrails_node
+from guardrails.output_guardrail import output_guardrail_node
+from agents.supervisor import supervisor_node
+from agents.research_agent import research_agent_node
+from agents.analysis_agent import analysis_agent_node
+from agents.critic_agent import critic_node
+from agents.synthesis_agent import synthesis_node
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +61,7 @@ def _instrument_node(name: str, fn):
 # ────────────────────────────────────────────────────────────────────
 
 def error_exit_node(state: GraphState) -> Dict[str, Any]:
-    """Terminal node for pipeline failures.
-    Packages the error into the synthesis_report for consistent API response."""
+    """Terminal node for pipeline failures."""
     error_msg = state.get("error", "Unknown pipeline error")
     company = state.get("company_name", "N/A")
 
@@ -81,84 +75,44 @@ def error_exit_node(state: GraphState) -> Dict[str, Any]:
             "features": [],
             "total_sources_analysed": 0,
             "total_features_verified": 0,
-            "metadata": {"error": error_msg, "pipeline_version": "2.0"},
+            "metadata": {"error": error_msg, "pipeline_version": "3.0-multi-agent"},
         }
     }
 
 
 # ────────────────────────────────────────────────────────────────────
-# Conditional Edge Functions
+# Conditional Edge Functions (Dynamic Routing)
 # ────────────────────────────────────────────────────────────────────
 
 def _check_guardrail(state: GraphState) -> str:
-    """Route after guardrails: continue on success, exit on error."""
     if state.get("error"):
         return "error_exit"
-    return "search_planner"
+    return "supervisor"
 
 
-def _check_search_results(state: GraphState) -> str:
-    """Route after search execution: exit if no results found."""
-    results = state.get("search_results", [])
-    if not results:
-        return "no_results"
-    return "scraper_strategy"
+def _route_supervisor(state: GraphState) -> str:
+    """Route based on Supervisor's LLM-driven decision."""
+    next_agent = state.get("next_agent", "done")
+
+    if state.get("error"):
+        return "error_exit"
+
+    route_map = {
+        "research": "research",
+        "analysis": "analysis",
+        "critic": "critic",
+        "synthesis": "synthesis",
+        "output_guardrail": "output_guardrail",
+        "done": "done",
+    }
+    return route_map.get(next_agent, "done")
 
 
-def _check_scraped_articles(state: GraphState) -> str:
-    """Route after scraping: exit if all scraping failed."""
-    articles = state.get("scraped_articles", [])
-    if not articles:
-        return "no_articles"
-    return "date_validation"
-
-
-def _check_filtered_after_date(state: GraphState) -> str:
-    """Route after date validation: exit if all articles are too old."""
-    filtered = state.get("filtered_results", [])
-    if not filtered:
-        return "all_expired"
-    return "content_filter"
-
-
-def _check_filtered_after_content(state: GraphState) -> str:
-    """Route after content filter: exit if no technical articles remain."""
-    filtered = state.get("filtered_results", [])
-    if not filtered:
-        return "no_technical"
-    return "authority_check"
-
-
-def _check_features(state: GraphState) -> str:
-    """Route after feature extraction: exit if no features extracted."""
-    features = state.get("extracted_features", [])
-    if not features:
-        return "no_features"
-    return "verification"
-
-
-# ────────────────────────────────────────────────────────────────────
-# Early Exit Nodes (describe why the pipeline stopped)
-# ────────────────────────────────────────────────────────────────────
-
-def _no_results_node(state: GraphState) -> Dict[str, Any]:
-    return {"error": f"No search results found for '{state.get('company_name', 'N/A')}'. The company may not have recent public technical updates."}
-
-
-def _no_articles_node(state: GraphState) -> Dict[str, Any]:
-    return {"error": f"All URLs for '{state.get('company_name', 'N/A')}' failed to scrape. Sources may be behind paywalls or blocking automated access."}
-
-
-def _all_expired_node(state: GraphState) -> Dict[str, Any]:
-    return {"error": f"All articles for '{state.get('company_name', 'N/A')}' are older than 7 days. No recent technical updates found."}
-
-
-def _no_technical_node(state: GraphState) -> Dict[str, Any]:
-    return {"error": f"No articles about '{state.get('company_name', 'N/A')}' contained technical feature updates. All content was classified as non-technical."}
-
-
-def _no_features_node(state: GraphState) -> Dict[str, Any]:
-    return {"error": f"No extractable technical features were found in articles about '{state.get('company_name', 'N/A')}'. Content may be too generic."}
+def _after_worker(state: GraphState) -> str:
+    """After worker agent → route back to Supervisor."""
+    if state.get("error"):
+        return "error_exit"
+    return "supervisor"
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -166,100 +120,70 @@ def _no_features_node(state: GraphState) -> Dict[str, Any]:
 # ────────────────────────────────────────────────────────────────────
 
 def build_graph():
-    """Assemble and compile the LangGraph pipeline.
+    """Assemble and compile the multi-agent LangGraph pipeline.
 
-    This is called once at app startup. The compiled graph is
-    thread-safe and can be invoked concurrently.
+    Architecture:
+      Input Guardrails → Supervisor → {Research, Analysis, Critic, Synthesis}
+                             ↑                            ↓
+                             └──── loop back to Supervisor ┘
+                                        ↓
+                             Synthesis → Output Guardrail → DONE
     """
     builder = StateGraph(GraphState)
 
     # ── Register all nodes (instrumented) ──────────────────────────
     builder.add_node("guardrails", _instrument_node("guardrails", guardrails_node))
-    builder.add_node("search_planner", _instrument_node("search_planner", search_planner_node))
-    builder.add_node("search_execution", _instrument_node("search_execution", search_execution_node))
-    builder.add_node("scraper_strategy", _instrument_node("scraper_strategy", scraper_strategy_node))
-    builder.add_node("date_validation", _instrument_node("date_validation", date_validation_node))
-    builder.add_node("content_filter", _instrument_node("content_filter", content_filter_node))
-    builder.add_node("authority_check", _instrument_node("authority_check", authority_check_node))
-    builder.add_node("feature_extraction", _instrument_node("feature_extraction", feature_extraction_node))
-    builder.add_node("verification", _instrument_node("verification", verification_node))
-    builder.add_node("scoring", _instrument_node("scoring", confidence_scoring_node))
+    builder.add_node("supervisor", _instrument_node("supervisor", supervisor_node))
+    builder.add_node("research", _instrument_node("research", research_agent_node))
+    builder.add_node("analysis", _instrument_node("analysis", analysis_agent_node))
+    builder.add_node("critic", _instrument_node("critic", critic_node))
     builder.add_node("synthesis", _instrument_node("synthesis", synthesis_node))
-
-    # Error / early-exit nodes
+    builder.add_node("output_guardrail", _instrument_node("output_guardrail", output_guardrail_node))
     builder.add_node("error_exit", error_exit_node)
-    builder.add_node("no_results", _no_results_node)
-    builder.add_node("no_articles", _no_articles_node)
-    builder.add_node("all_expired", _all_expired_node)
-    builder.add_node("no_technical", _no_technical_node)
-    builder.add_node("no_features", _no_features_node)
 
     # ── Entry point ────────────────────────────────────────────────
     builder.set_entry_point("guardrails")
 
-    # ── Conditional edges ──────────────────────────────────────────
-
-    # Guardrails → pass/fail
+    # ── Guardrails → Supervisor or Error ───────────────────────────
     builder.add_conditional_edges("guardrails", _check_guardrail, {
-        "search_planner": "search_planner",
+        "supervisor": "supervisor",
         "error_exit": "error_exit",
     })
 
-    # Search Planner → Search Execution (always)
-    builder.add_edge("search_planner", "search_execution")
-
-    # Search Execution → Scraper / empty exit
-    builder.add_conditional_edges("search_execution", _check_search_results, {
-        "scraper_strategy": "scraper_strategy",
-        "no_results": "no_results",
+    # ── Supervisor → Dynamic routing to agents ─────────────────────
+    builder.add_conditional_edges("supervisor", _route_supervisor, {
+        "research": "research",
+        "analysis": "analysis",
+        "critic": "critic",
+        "synthesis": "synthesis",
+        "output_guardrail": "output_guardrail",
+        "error_exit": "error_exit",
+        "done": END,
     })
 
-    # Scraper → Date Validation / scrape failure exit
-    builder.add_conditional_edges("scraper_strategy", _check_scraped_articles, {
-        "date_validation": "date_validation",
-        "no_articles": "no_articles",
+    # ── Worker agents → back to Supervisor ─────────────────────────
+    builder.add_conditional_edges("research", _after_worker, {
+        "supervisor": "supervisor",
+        "error_exit": "error_exit",
     })
 
-    # Date Validation → Content Filter / all expired exit
-    builder.add_conditional_edges("date_validation", _check_filtered_after_date, {
-        "content_filter": "content_filter",
-        "all_expired": "all_expired",
+    builder.add_conditional_edges("analysis", _after_worker, {
+        "supervisor": "supervisor",
+        "error_exit": "error_exit",
     })
 
-    # Content Filter → Authority Check / no technical content exit
-    builder.add_conditional_edges("content_filter", _check_filtered_after_content, {
-        "authority_check": "authority_check",
-        "no_technical": "no_technical",
+    builder.add_conditional_edges("critic", _after_worker, {
+        "supervisor": "supervisor",
+        "error_exit": "error_exit",
     })
 
-    # Authority Check → Feature Extraction (always continues)
-    builder.add_edge("authority_check", "feature_extraction")
-
-    # Feature Extraction → Verification / no features exit
-    builder.add_conditional_edges("feature_extraction", _check_features, {
-        "verification": "verification",
-        "no_features": "no_features",
-    })
-
-    # Verification → Scoring (always)
-    builder.add_edge("verification", "scoring")
-
-    # Scoring → Synthesis (always)
-    builder.add_edge("scoring", "synthesis")
-
-    # ── Terminal edges ─────────────────────────────────────────────
-    builder.add_edge("synthesis", END)
-
-    # All error/early-exit nodes → error_exit → END
-    builder.add_edge("no_results", "error_exit")
-    builder.add_edge("no_articles", "error_exit")
-    builder.add_edge("all_expired", "error_exit")
-    builder.add_edge("no_technical", "error_exit")
-    builder.add_edge("no_features", "error_exit")
+    # ── Synthesis → Output Guardrail → DONE ────────────────────────
+    builder.add_edge("synthesis", "output_guardrail")
+    builder.add_edge("output_guardrail", END)
     builder.add_edge("error_exit", END)
 
     # ── Compile ────────────────────────────────────────────────────
     compiled = builder.compile()
-    logger.info("GRAPH — Pipeline compiled successfully with %d nodes", 17)
+    logger.info("GRAPH — Multi-agent pipeline compiled (Supervisor + 5 worker agents + Output Guardrail)")
 
     return compiled

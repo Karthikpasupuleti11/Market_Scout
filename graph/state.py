@@ -109,3 +109,15 @@ class GraphState(TypedDict, total=False):
     # ── Control flow ───────────────────────────────────────────────
     error: str                                # Error message (triggers failure exit)
     retry_count: int                          # Retry counter for transient failures
+
+    # ── Multi-Agent Supervisor fields ──────────────────────────────
+    next_agent: str                           # Supervisor's routing decision
+    critic_feedback: str                      # Critic's review comments for re-processing
+    critic_approved: bool                     # Whether the Critic approved the features
+    iteration_count: int                      # Loop counter (max 2 to prevent infinite loops)
+    all_sources: List[str]                    # Accumulated unique source URLs across iterations
+
+    # ── Inter-Agent Communication ──────────────────────────────────
+    agent_messages: List[Dict[str, Any]]      # Handoff messages between agents
+    delegation_request: str                   # Agent-to-agent delegation (e.g. "need_more_data")
+    tools_used: List[str]                     # Audit log of tools each agent invoked

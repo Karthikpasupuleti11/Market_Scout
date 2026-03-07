@@ -1,163 +1,165 @@
-# 🔍 Market Intelligence Scout
+# Market Intelligence Scout
 
-AI-powered competitive intelligence platform that discovers, verifies, and scores technical features from public sources.
+**Industry-grade multi-agent system** for automated market intelligence gathering. Built with LangGraph, NVIDIA NIM, and self-contained agent packages.
 
----
+## Architecture
 
-## Prerequisites
-
-Make sure you have these installed:
-
-- **Python 3.10+** → [Download](https://www.python.org/downloads/)
-- **Node.js 18+** → [Download](https://nodejs.org/)
-- **Docker Desktop** → [Download](https://www.docker.com/products/docker-desktop/)
-- **Git** → [Download](https://git-scm.com/)
-
----
-
-## 🚀 Setup Guide (Step by Step)
-
-### 1. Clone the Repository
-
-```bash
-git clone <your-repo-url>
-cd Market_Scout
+```
+User Request
+     │
+     ▼
+┌─────────────┐
+│  Input      │  ← Validates company names, blocks prompt injection
+│  Guardrail  │
+└─────┬───────┘
+      ▼
+┌─────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│  Supervisor │────▶│  Research Agent   │────▶│  Analysis Agent  │
+│  (Router)   │◀────│  • Planner       │     │  • Planner       │
+│             │     │  • Search ‖      │     │  • Filter ‖      │
+│  LLM-driven │     │  • Scraper ‖     │     │  • Extractor ‖   │
+│  dynamic    │     │  • Date filter   │     │  • Verifier      │
+│  routing    │     │  • Self-critic   │     │  • Scorer        │
+│             │     │  • Memory        │     │  • Self-critic   │
+└──────┬──────┘     └──────────────────┘     │  • Memory        │
+       │                                      └──────────────────┘
+       ▼
+┌──────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│ Critic Agent │    │ Synthesis Agent  │───▶│ Output Guardrail │
+│ • Approve    │    │ • Report gen     │    │ • Prompt leak    │
+│ • Revise     │    │ • Memory         │    │ • Data exposure  │
+│ • Memory     │    └──────────────────┘    │ • Score sanity   │
+└──────────────┘                            │ • URL validation │
+                                            └────────┬─────────┘
+  ‖ = Parallel execution (ThreadPoolExecutor)         ▼
+                                                   User
 ```
 
-### 2. Create the `.env` File
-
-Create a file called `.env` in the project root with your API keys:
-
-```env
-NVIDIA_API_KEY=your_nvidia_api_key_here
-TAVILY_API_KEY=your_tavily_api_key_here
-```
-
-> **How to get API keys:**
-> - **NVIDIA NIM:** Sign up at [build.nvidia.com](https://build.nvidia.com/) → Get API Key
-> - **Tavily:** Sign up at [tavily.com](https://tavily.com/) → Get API Key (free tier available)
-
-### 3. Start Docker Services
-
-```bash
-docker compose up -d
-```
-
-This starts 4 services:
-| Service | Port | Purpose |
-|---------|------|---------|
-| PostgreSQL | 5433 | Database |
-| Redis | 6379 | Cache & Rate Limiting |
-| Prometheus | 9090 | Metrics Collection |
-| Grafana | 3000 | Monitoring Dashboard |
-
-Verify all are running:
-```bash
-docker compose ps
-```
-
-### 4. Set Up Python Virtual Environment
-
-**Windows:**
-```powershell
-python -m venv venv
-.\venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-**Mac/Linux:**
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 5. Start the Backend
-
-```bash
-uvicorn app.main:app --reload
-```
-
-Verify: Open **http://localhost:8000/docs** in your browser — you should see the Swagger API docs.
-
-### 6. Set Up & Start the Frontend
-
-Open a **new terminal window**:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### 7. Open the App
-
-Open **http://localhost:5173** in your browser. You're ready to go! 🎉
-
----
-
-## 📌 Quick Reference
-
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| **Frontend** | http://localhost:5173 | — |
-| **Backend API** | http://localhost:8000 | — |
-| **Swagger Docs** | http://localhost:8000/docs | — |
-| **Prometheus** | http://localhost:9090 | — |
-| **Grafana** | http://localhost:3000 | admin / admin |
-
----
-
-## 🔧 Useful Commands
-
-```bash
-# Stop all Docker services
-docker compose down
-
-# Restart a specific service
-docker compose restart grafana
-
-# View Docker logs
-docker compose logs -f app
-
-# Access PostgreSQL
-docker exec -it market_postgres psql -U admin -d market_db
-
-# Access Redis
-docker exec -it market_redis redis-cli
-
-# Rebuild app container
-docker compose up -d --build app
-```
-
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 Market_Scout/
-├── app/              # FastAPI application (main.py, config.py)
-├── agents/           # LLM-powered nodes (search_planner, scraper, synthesis)
-├── nodes/            # Deterministic nodes (guardrails, date_validation, scoring...)
-├── graph/            # LangGraph pipeline (builder.py, state.py)
-├── llm/              # NVIDIA NIM client
-├── database/         # PostgreSQL models, CRUD, schemas
-├── cache/            # Redis client
-├── observability/    # Prometheus metrics + OpenTelemetry tracing
-├── monitoring/       # Prometheus & Grafana configs
-├── frontend/         # React SPA (Vite)
-├── docker-compose.yaml
-├── Dockerfile
+├── agents/                          # Self-contained agent packages
+│   ├── supervisor/                  # Dynamic routing agent
+│   │   ├── agent.py                 #   LLM-driven routing logic
+│   │   ├── planner.py               #   Deterministic routing rules
+│   │   └── memory.py                #   Routing history tracker
+│   │
+│   ├── research_agent/              # Web research agent
+│   │   ├── agent.py                 #   Main ReAct loop
+│   │   ├── planner.py               #   Search query generation
+│   │   ├── critic.py                #   Self-review (coverage, diversity)
+│   │   ├── memory.py                #   Query/URL tracker
+│   │   └── tools/                   #   Agent-specific tools
+│   │       ├── search.py            #     Tavily search (PARALLEL, 4 threads)
+│   │       ├── scraper.py           #     Web scraping (PARALLEL, 8 threads)
+│   │       └── date_filter.py       #     7-day recency filter
+│   │
+│   ├── analysis_agent/              # Data analysis agent
+│   │   ├── agent.py                 #   Full analysis pipeline
+│   │   ├── planner.py               #   Strategy planning
+│   │   ├── critic.py                #   Self-review (quality, evidence)
+│   │   ├── memory.py                #   Extraction history
+│   │   └── tools/                   #   Agent-specific tools
+│   │       ├── content_filter.py    #     Relevance filter (PARALLEL, 5 threads)
+│   │       ├── authority.py         #     Source credibility check
+│   │       ├── extractor.py         #     Feature extraction (PARALLEL, 5 threads)
+│   │       ├── verifier.py          #     SBERT cross-source clustering
+│   │       └── scorer.py            #     Confidence scoring formula
+│   │
+│   ├── critic_agent/                # Quality review agent
+│   │   ├── agent.py                 #   Approve/Revise decisions
+│   │   └── memory.py                #   Review history
+│   │
+│   ├── synthesis_agent/             # Report generation agent
+│   │   ├── agent.py                 #   Executive report generator
+│   │   └── memory.py                #   Report tracking
+│   │
+│   └── output_guardrail/            # Output security gate
+│       └── agent.py                 #   5 validation checks
+│
+├── graph/                           # LangGraph orchestration
+│   ├── builder.py                   #   Pipeline assembly + conditional edges
+│   └── state.py                     #   Shared GraphState schema
+│
+├── nodes/                           # Standalone pipeline nodes
+│   └── guardrails.py                #   Input validation + prompt injection guard
+│
+├── app/                             # FastAPI application
+│   ├── main.py                      #   Server + API endpoints
+│   └── config.py                    #   Settings (env-driven)
+│
+├── llm/                             # LLM client
+│   └── nvidia_client.py             #   NVIDIA NIM (LLaMA 3.3 70B)
+│
+├── cache/                           # Caching layer
+│   └── redis_client.py              #   Redis operations
+│
+├── database/                        # PostgreSQL persistence
+│   └── models.py                    #   SQLAlchemy models
+│
+├── observability/                   # Monitoring
+│   ├── metrics.py                   #   Prometheus counters/histograms
+│   └── tracing.py                   #   OpenTelemetry setup
+│
+├── frontend/                        # React dashboard
+├── docker-compose.yaml              #   PostgreSQL, Redis, Prometheus, Grafana
 ├── requirements.txt
-└── .env              # API keys (create this yourself)
+└── README.md
 ```
 
----
+## Tech Stack
 
-## 🏗️ Tech Stack
+| Component | Technology |
+|-----------|-----------|
+| **Orchestration** | LangGraph (StateGraph, conditional edges) |
+| **LLM** | NVIDIA NIM — LLaMA 3.3 70B Instruct |
+| **Search** | Tavily API |
+| **Embeddings** | Sentence-BERT (all-MiniLM-L6-v2) via HuggingFace |
+| **Backend** | FastAPI + Uvicorn |
+| **Frontend** | React |
+| **Database** | PostgreSQL (SQLAlchemy) |
+| **Cache** | Redis |
+| **Monitoring** | Prometheus + Grafana |
+| **Tracing** | OpenTelemetry |
 
-**Backend:** Python, FastAPI, LangGraph, NVIDIA NIM (LLaMA 3.3 70B), Tavily, SBERT, SQLAlchemy, Redis
+## Quick Start
 
-**Frontend:** React 19, Vite, React Router
+```bash
+# 1. Clone and install
+git clone https://github.com/Karthikpasupuleti11/Market_Scout.git
+cd Market_Scout
+python -m venv venv && source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
 
-**Infrastructure:** Docker, PostgreSQL 15, Redis 7, Prometheus, Grafana
+# 2. Set environment variables (.env)
+NVIDIA_API_KEY=nvapi-...
+TAVILY_API_KEY=tvly-...
+HF_API_TOKEN=hf_...
+
+# 3. Start infrastructure
+docker compose up -d  # PostgreSQL, Redis, Prometheus, Grafana
+
+# 4. Run the server
+uvicorn app.main:app --reload
+
+# 5. Submit a query
+curl -X POST http://localhost:8000/run-agent \
+  -H "Content-Type: application/json" \
+  -d '{"company_name": "OpenAI"}'
+```
+
+## Multi-Agent Patterns Used
+
+| Pattern | Implementation |
+|---------|---------------|
+| **Orchestrator + Workers** | Supervisor dynamically routes to specialist agents |
+| **Tool-Use Agents** | Research + Analysis agents use ReAct-style tool calling |
+| **Critic/Review Loop** | Critic Agent can reject and trigger re-research (max 2 iterations) |
+| **Self-Contained Agents** | Each agent has own planner, critic, memory, tools |
+| **Parallel Execution** | ThreadPoolExecutor for I/O-bound operations (4-8 threads) |
+| **Dual-Layer Guardrails** | Input guardrail (validation) + Output guardrail (security) |
+
+## License
+
+MIT

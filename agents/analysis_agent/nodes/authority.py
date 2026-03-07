@@ -1,32 +1,19 @@
 """
-Market Intelligence Scout — Authority Check Node
+Analysis Agent — Authority Check Tool
 
-Deterministic node with LLM classification.
-
-Responsibilities:
-  • Verify if an article is an official or primary source
-  • Filter out secondary news coverage and aggregated reports
-  • Carry forward authority metadata
+Classifies sources as PRIMARY or SECONDARY.
 """
 
 import logging
 from typing import Dict, Any, List
 
-from graph.state import GraphState
 from llm.nvidia_client import invoke_llm
 
 logger = logging.getLogger(__name__)
 
 
-def authority_check_node(state: GraphState) -> Dict[str, Any]:
-    """
-    Authority Check — classify article source credibility.
-
-    Input:  state["filtered_results"] (from Content Filter)
-    Output: state["filtered_results"] (overwritten with validated articles)
-    """
-    articles = state.get("filtered_results", [])
-    company_name = state.get("company_name", "")
+def authority_tool(articles: List[Dict[str, Any]], company_name: str) -> Dict[str, Any]:
+    """Classify article source credibility for a company."""
     logger.info("AUTHORITY CHECK — Evaluating %d articles for '%s'", len(articles), company_name)
 
     if not articles:
@@ -69,14 +56,10 @@ Respond with ONLY one word: PRIMARY or SECONDARY"""
 
             if "PRIMARY" in decision:
                 validated.append(article)
-                logger.debug("AUTHORITY — PRIMARY: %s", url[:60])
             else:
-                # Still include secondary sources but with reduced authority
                 article_copy = dict(article)
                 article_copy["authority_score"] = article_copy.get("authority_score", 0.5) * 0.7
                 validated.append(article_copy)
-                logger.debug("AUTHORITY — SECONDARY (reduced score): %s", url[:60])
-
         except Exception as exc:
             logger.warning("AUTHORITY — LLM error for '%s': %s — defaulting to include", url[:40], exc)
             validated.append(article)
