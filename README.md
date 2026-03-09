@@ -108,6 +108,17 @@ Market_Scout/
 └── README.md
 ```
 
+## Observability & Monitoring
+
+The system includes a fully configured **Prometheus + Grafana** stack to monitor pipeline health in real-time.
+
+- **Pipeline Metrics**: Tracks active runs, pass/fail rates, and guardrail blocks.
+- **Node Latency**: Measures p95 latency for every agent and tool execution.
+- **LLM Cost & Usage**: Tracks token usage by agent (prompt vs completion) and LLM API call success rates.
+- **Intelligence Metrics**: Tracks features extracted, confidence score distribution, and URLs discarded/scraped.
+
+Access the dashboard at `http://localhost:3000` (default Grafana).
+
 ## Tech Stack
 
 | Component | Technology |
@@ -155,10 +166,10 @@ curl -X POST http://localhost:8000/run-agent \
 |---------|---------------|
 | **Orchestrator + Workers** | Supervisor dynamically routes to specialist agents |
 | **Tool-Use Agents** | Research + Analysis agents use ReAct-style tool calling |
-| **Critic/Review Loop** | Critic Agent can reject and trigger re-research (max 2 iterations) |
+| **Critic/Review Loop** | Critic Agent can reject and trigger re-analysis (max 3 iterations) |
 | **Self-Contained Agents** | Each agent has own planner, critic, memory, tools |
 | **Parallel Execution** | ThreadPoolExecutor for I/O-bound operations (4-8 threads) |
-| **Dual-Layer Guardrails** | Input guardrail (validation) + Output guardrail (security) |
+| **Dual-Layer Guardrails** | Input guardrail (6 security checks) + Output guardrail (5 validation checks) |
 
 ## License
 

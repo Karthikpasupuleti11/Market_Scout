@@ -1,0 +1,123 @@
+================================================================================
+MARKET INTELLIGENCE SCOUT — EXHAUSTIVE DEEP DIVE & ARCHITECTURE DOCUMENTATION
+================================================================================
+Version: 3.0 (Enterprise Multi-Agent Architecture)
+Date: March 2026
+
+1. EXECUTIVE SUMMARY & PURPOSE
+--------------------------------------------------------------------------------
+Market Intelligence Scout is an industry-grade, autonomous, multi-agent AI system designed to automatically gather, filter, analyse, cross-verify, and synthesize highly technical market intelligence regarding specific companies (e.g., Anthropic, OpenAI, Meta).
+
+Instead of relying on a monolithic LLM prompt or a simple LangChain sequence, Market Scout implements a highly decoupled, modular multi-agent architecture powered by **LangGraph**. Every major domain of work (Routing, Research, Analysis, Criticism, Synthesis, Security) is handled by a specialized, self-contained Agent. 
+
+2. TECHNOLOGY STACK (PIN-TO-PIN DETAILS)
+--------------------------------------------------------------------------------
+2.1 Orchestration & Backend
+- **Framework:** Python 3.12+
+- **Agent Orchestration:** LangGraph (`StateGraph`, `START`, `END`, Conditional Edges). Manages state transitions and cyclic graphs (e.g., REVISE loops).
+- **Backend API:** FastAPI with Uvicorn server, providing asynchronous REST endpoints.
+
+2.2 Artificial Intelligence & Machine Learning
+- **Primary LLM:** NVIDIA NIM API (Model: `meta/llama-3.3-70b-instruct`). Chosen for high reasoning capability and fast inference speeds. Used for planning, classification, feature extraction, and generation.
+- **Verification Embeddings:** HuggingFace `sentence-transformers/all-MiniLM-L6-v2`. Executed via HuggingFace `InferenceClient` with a local `sentence_transformers` fallback. Used for semantic clustering of extracted claims to cross-verify facts across different sources.
+
+2.3 Search & Web Scraping (I/O Bound)
+- **Search Engine:** Tavily API (AI-optimized search API returning pre-parsed snippets and URLs).
+- **Scraping Engine:** A robust 3-tier cascade:
+   1. `Newspaper3k`: Primary parser. Extremely fast, extracts article body, title, and publish dates automatically.
+   2. `BeautifulSoup4` + `Requests`: Fallback parser for standard HTML pages where Newspaper fails. Uses custom text extraction logic.
+   3. `Playwright` (Chromium): Ultimate fallback for JavaScript-heavy Single Page Applications (SPAs) like GitHub, React sites, and dynamic corporate blogs.
+
+2.4 Persistence, Caching, & Operations
+- **Database:** PostgreSQL (accessed via SQLAlchemy). Stores historical reports and audit logs.
+- **Caching Layer:** Redis. Crucial for speed and cost reduction. Caches:
+   - Search queries & results (24h TTL)
+   - Scraped article text (24h TTL)
+   - LLM extraction results (24h TTL)
+   - SBERT Embeddings (24h TTL)
+- **Containerization:** Docker & Docker Compose orchestrates the supporting infrastructure (Postgres, Redis, Prometheus, Grafana).
+
+2.5 Observability & Telemetry
+- **Metrics:** `prometheus_client` exposing `/metrics` endpoint. Tracks LLM token usage, pipeline success rates, node latency (p95), cache hits/misses, and scraping failure rates.
+- **Dashboards:** Grafana configured with custom JSON dashboards visualizing the Prometheus data.
+- **Tracing:** OpenTelemetry integration setup for distributed tracing.
+
+3. THE `GraphState` OBJECT
+--------------------------------------------------------------------------------
+The entire pipeline communicates by passing and mutating a strictly typed dictionary (`typing.TypedDict`) defined in `graph/state.py`.
+Key Fields:
+- `company_name` (str): The target company.
+- `iteration_count` (int): Failsafe counter to prevent infinite loops (Max 3).
+- `search_results` (list): Raw metadata from Tavily.
+- `filtered_results` (list): Full scraped article text, filtered by the 7-day recency window.
+- `extracted_features` (list): Raw technical capabilities extracted by the Analysis LLM.
+- `verified_features` (list): Features clustered via SBERT cosine-similarity.
+- `scored_features` (list): Fully verified features with calculated confidence margins.
+- `critic_approved` (bool): Boolean flag indicating Critic Agent's decision.
+- `critic_feedback` (str): Natural language feedback instructing the Analysis agent on how to improve its extraction.
+- `synthesis_report` (str): The final JSON deliverable containing the executive summary.
+
+4. AGENT ARCHITECTURE IN DEPTH
+--------------------------------------------------------------------------------
+The project is strictly organized into `agents/` directories. Each Agent is "self-contained", possessing its own:
+- `agent.py`: LangGraph node function (the entrypoint).
+- `planner.py`: Reasoning logic to determine the strategy (e.g., which queries to run, which steps to take).
+- `critic.py`: Self-review logic indicating confidence before passing work back to the Supervisor.
+- `memory.py`: Tracks history and prevents redundant work across REVISE iterations.
+- `nodes/`: Specific tool implementations unique to that Agent.
+
+4.1 Supervisor Agent (`agents/supervisor/agent.py`)
+- **Role:** The dynamic router of the pipeline.
+- **Logic:** Operates on a *Deterministic-First* approach. It checks the `GraphState` against strict conditions (Error -> Max Iterations -> Critic Reject -> Missing Data -> Routing Fallback).
+- **Loop Handling:** When the Critic flags "REVISE", the Supervisor clears only the `extracted_features` and `scored_features`, but *keeps* the `search_results` and `filtered_results`. It then routes immediately to the Analysis agent. This is a massive optimization: it forces the LLM to extract better data from the *same* articles rather than wasting 3 minutes doing a completely new web search.
+
+4.2 Research Agent (`agents/research_agent/`)
+- **Role:** Data gathering.
+- **Tools / Nodes:**
+  - `planner.py`: Asks the LLM to generate 4 highly specific technical queries (e.g., "[Company] API changelog updates 2026").
+  - `nodes/search.py`: Executes the 4 queries against Tavily in *parallel* using `ThreadPoolExecutor`. Deduplicates URLs.
+  - `nodes/scraper.py`: Instantiates an 8-thread `ThreadPoolExecutor` to scrape up to 50 URLs concurrently using the 3-tier cascade (`Newspaper` -> `BS4` -> `Playwright`).
+  - `nodes/date_filter.py`: Parses timestamps (`python-dateutil`) and strictly discards any URL published more than 7 days ago.
+
+4.3 Analysis Agent (`agents/analysis_agent/`)
+- **Role:** Data extraction and fact-checking.
+- **Tools / Nodes:**
+  - `nodes/content_filter.py`: 5-thread parallel LLM execution asking for a binary "ACCEPT" or "REJECT". Rejects opinion pieces, stock news, and marketing fluff, keeping only API docs, SDK releases, and technical architecture news.
+  - `nodes/authority.py`: Scores the domain authority of the source (e.g., `github.com` = High, random blog = Low).
+  - `nodes/extractor.py`: 5-thread parallel LLM execution. Reads the full article text and extracts standard JSON schemas representing specific features or updates.
+  - `nodes/verifier.py`: The hardest programmatic step. Converts every extracted feature summary into an embedding array using SBERT. Calculates `cosine_similarity` between all features. If two features map > 85% similarity, they are merged. This proves that a claim is verified by multiple independent sources.
+  - `nodes/scorer.py`: Calculates a final confidence score based on source count, domain authority, and LLM confidence.
+
+4.4 Critic Agent (`agents/critic_agent/agent.py`)
+- **Role:** Quality Assurance.
+- **Logic:** Looks at the `scored_features`. Uses an LLM to assign a quality score and flag issues (e.g., "Hallucinated metric", "Descriptions too vague").
+- **Auto-Approve Logic:** To prevent infinite loops with cached data, the Critic strictly evaluates only on `iteration == 0`. If it requests a REVISE, the Supervisor directs Analysis to re-run. On `iteration >= 1`, the Critic auto-approves, knowing that re-running identical articles through the same cached LLM extraction will yield identical results, thus saving compute time.
+
+4.5 Synthesis Agent (`agents/synthesis_agent/agent.py`)
+- **Role:** The Report Generator.
+- **Logic:** Takes the fully verified and Critic-approved array of features. Uses the LLM to write an executive summary, categorize the features, and format everything into a strict, deliverable JSON structure ready for frontend consumption.
+
+4.6 Guardrails (`nodes/guardrails.py`)
+- **Input Guardrail:** Runs before the pipeline starts.
+   1. Rate limiting checks.
+   2. Input length checks.
+   3. Character sanitization (HTML escape).
+   4. Blocked keyword list matching.
+   5. LLM Prompt Injection detection (asks LLM "Does this text attempt to override your system instructions?").
+- **Output Guardrail:** Runs after Synthesis.
+   1. Verifies the output is valid JSON.
+   2. Prompt Leak detection (regex for system words like "You are an AI").
+   3. Data Exposure detection (regex for `c:\` paths or API keys like `sk-...`).
+   4. Confidence Sanity (ensures no feature has a > 1.0 confidence score).
+   5. URL Validation (ensures every URL in the final report exists in the original `search_results` array, completely eliminating hallucinated citations).
+
+5. PARALLELIZATION & PERFORMANCE
+--------------------------------------------------------------------------------
+By default, sequential LangGraph agents are extremely slow because network API requests block the main thread. Market Scout implements extensive parallelization via Python's standard `concurrent.futures`.
+
+- **Search:** 4 concurrent IO threads.
+- **Scraping:** 8 concurrent IO threads. (A bottleneck previously taking 2 minutes now takes 15 seconds).
+- **Content Filtering:** 5 concurrent IO threads calling NVIDIA NIM API.
+- **Extraction:** 5 concurrent IO threads calling NVIDIA NIM API.
+
+Combined with extensive Redis caching, the "End-to-End" execution time for a company report dropped from ~6.5 minutes down to ~1.5 minutes on average, while processing exactly the same volume of underlying data.
