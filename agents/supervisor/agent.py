@@ -76,7 +76,7 @@ def supervisor_node(state: GraphState) -> Dict[str, Any]:
         if has_scored_features:
             logger.info("SUPERVISOR → synthesis (has %d scored features)", len(state.get("scored_features", [])))
             return {"next_agent": "synthesis", "critic_approved": True, "critic_feedback": ""}
-        elif has_filtered_results:
+        elif has_filtered_results and not delegation_request:
             logger.info("SUPERVISOR → analysis (has articles, needs features)")
             return {"next_agent": "analysis", "critic_approved": True, "critic_feedback": ""}
         else:
@@ -107,9 +107,11 @@ def supervisor_node(state: GraphState) -> Dict[str, Any]:
 
     # ── 5. Delegation request (analysis needs data) → research ─────
     if delegation_request == "need_more_data":
-        logger.info("SUPERVISOR → research (delegation: analysis needs more data)")
+        logger.info("SUPERVISOR → research (delegation: analysis needs more data, iteration %d→%d)",
+                    iteration, iteration + 1)
         return {
             "next_agent": "research",
+            "iteration_count": iteration + 1,  # Break infinite delegation loop
             "delegation_request": "",
             "error": "",
         }

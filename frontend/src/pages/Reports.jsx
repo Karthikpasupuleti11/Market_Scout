@@ -26,25 +26,29 @@ export default function Reports() {
     };
 
     return (
-        <div className="reports-page fade-in">
-            <div className="page-header">
-                <h1>Intelligence Reports</h1>
-                <p>Search and browse historical intelligence reports by company name</p>
+        <div className="fade-in">
+            <div className="reports-header">
+                <div>
+                    <div className="page-header" style={{ marginBottom: 0 }}>
+                        <h1>Intelligence Reports</h1>
+                        <p>Search and browse historical intelligence reports by company name</p>
+                    </div>
+                </div>
             </div>
 
-            <form className="card search-form" onSubmit={handleSearch}>
+            <form className="search-form" onSubmit={handleSearch}>
                 <div className="form-row">
                     <div className="input-wrapper">
                         <HiOutlineSearch className="input-icon" />
                         <input
-                            className="input pipeline-input"
+                            className="pipeline-input-search"
                             placeholder="Search reports by company name..."
                             value={company}
                             onChange={e => setCompany(e.target.value)}
                         />
                     </div>
                     <button type="submit" className="btn btn-primary" disabled={loading || !company.trim()}>
-                        {loading ? <span className="spinner" /> : <><HiOutlineSearch /> Search</>}
+                        {loading ? <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> : <><HiOutlineSearch /> Search</>}
                     </button>
                 </div>
             </form>
@@ -52,7 +56,7 @@ export default function Reports() {
             {loading && (
                 <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
                     <div className="spinner spinner-lg" style={{ margin: '0 auto 12px' }} />
-                    <p style={{ color: 'var(--text-secondary)' }}>Loading reports...</p>
+                    <p style={{ color: 'var(--muted)', fontSize: 13 }}>Loading reports...</p>
                 </div>
             )}
 
@@ -69,11 +73,10 @@ export default function Reports() {
                     {reports.map((report, i) => (
                         <div
                             key={report.id || i}
-                            className={`card report-card fade-in-up ${expanded === i ? 'expanded' : ''}`}
+                            className={`card report-card fade-in ${expanded === i ? 'expanded' : ''}`}
                             onClick={() => setExpanded(expanded === i ? null : i)}
                         >
                             <div className="report-card-header">
-                                <div className="report-icon"><HiOutlineDocumentText /></div>
                                 <div className="report-info">
                                     <h3>{report.company_name || company}</h3>
                                     <div className="report-meta">

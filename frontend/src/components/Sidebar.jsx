@@ -22,7 +22,11 @@ export default function Sidebar() {
     return (
         <aside className="sidebar">
             <div className="sidebar-brand">
-                <div className="brand-icon">🔍</div>
+                <div className="brand-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                </div>
                 <div>
                     <h1>Market Scout</h1>
                     <span className="brand-subtitle">Intelligence Platform</span>
@@ -40,8 +44,7 @@ export default function Sidebar() {
                             end={item.path === '/'}
                         >
                             <span className="nav-icon">{item.icon}</span>
-                            <span className="nav-label">{item.label}</span>
-                            {item.path === location.pathname && <span className="nav-indicator" />}
+                            {item.label}
                         </NavLink>
                     ))}
                 </div>
@@ -49,9 +52,9 @@ export default function Sidebar() {
                 <div className="nav-section">
                     <span className="nav-section-label">External</span>
                     {EXTERNAL_LINKS.map(link => (
-                        <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="nav-item external">
+                        <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="nav-item">
                             <span className="nav-icon">{link.icon}</span>
-                            <span className="nav-label">{link.label}</span>
+                            {link.label}
                             <span className="nav-external-badge">↗</span>
                         </a>
                     ))}
@@ -59,8 +62,9 @@ export default function Sidebar() {
             </nav>
 
             <div className="sidebar-footer">
-                <div className="footer-badge">v2.0</div>
+                <span className="footer-badge">v2.0</span>
                 <span>Pipeline Engine</span>
+                <div className="pulse-dot" style={{ marginLeft: 'auto' }} />
             </div>
         </aside>
     );

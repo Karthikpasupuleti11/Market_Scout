@@ -4,48 +4,54 @@
     left: var(--sidebar-width);
     right: 0;
     height: var(--header-height);
-    background: rgba(2, 6, 23, 0.98);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(15, 23, 42, 0.85);
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0 40px;
+    padding: 0 30px;
+    gap: 12px;
+    flex-shrink: 0;
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(8px);
     z-index: 90;
 }
 
 .header-title {
-    font-size: 1.15rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--text-primary);
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--heading);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
 
 .header-right {
+    margin-left: auto;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
 }
 
 .header-status {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
-    background: rgba(15, 23, 42, 0.9);
-    border-radius: 999px;
-    border: 1px solid rgba(51, 65, 85, 0.9);
+    gap: 7px;
+    padding: 5px 12px;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--success);
 }
 
 .status-dot {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: var(--success);
+    animation: pulse 2s infinite;
 }
 
 .status-text {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--success);
+    font-weight: 500;
 }
