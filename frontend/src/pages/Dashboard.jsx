@@ -9,7 +9,7 @@ import {
   HiOutlineClock,
   HiOutlineSparkles,
 } from "react-icons/hi";
-
+import ThemeToggle from "./ThemeToggle";
 export default function Dashboard() {
   const [competitors, setCompetitors] = useState([]);
   const [health, setHealth] = useState(null);
@@ -38,14 +38,20 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-secondary)] font-sans p-8">
       {/* Header */}
 
-      <div className="page-header">
-        <h1 className="text-[var(--text-primary)] text-3xl font-bold mb-1">
-          Welcome to Market Scout
-        </h1>
+      <div className="page-header flex justify-between items-start">
 
-        <p className="text-[var(--text-secondary)]">
-          Your AI-powered competitive intelligence platform
-        </p>
+        <div>
+            <h1 className="text-[var(--text-primary)] text-3xl font-bold mb-1">
+                Welcome to Market Scout
+           </h1>
+
+            <p className="text-[var(--text-secondary)]">
+                    Your AI-powered competitive intelligence platform
+            </p>
+        </div>
+
+            <ThemeToggle />
+
       </div>
 
       {/* Stats Grid */}
@@ -118,50 +124,50 @@ export default function Dashboard() {
       {/* Pipeline Section */}
       <div className="card fade-in-up">
 
-<h3 className="text-[1.15rem] font-semibold mb-7 flex items-center gap-2">
-🔗 Pipeline Architecture
-</h3>
+          <h3 className="text-[1.15rem] font-semibold mb-7 flex items-center gap-2">
+              🔗 Pipeline Architecture
+          </h3>
 
-<div className="flex flex-wrap gap-5">
+          <div className="flex flex-wrap gap-5">
 
-{pipelineSteps.map((item, i) => (
+              {pipelineSteps.map((item, i) => (
 
-<div
-key={i}
-className="flex items-center gap-3 px-5 py-3
-bg-[rgba(99,102,241,0.06)]
-border border-[rgba(99,102,241,0.12)]
-rounded-[var(--radius-md)]
-transition-all
-hover:bg-[rgba(99,102,241,0.12)]
-hover:border-[var(--border-accent)]"
->
+              <div
+                  key={i}
+                  className="flex items-center gap-3 px-5 py-3
+                  bg-[rgba(99,102,241,0.06)]
+                  border border-[rgba(99,102,241,0.12)]
+                  rounded-[var(--radius-md)]
+                  transition-all
+                  hover:bg-[rgba(99,102,241,0.12)]
+                  hover:border-[var(--border-accent)]"
+              >
 
-<div
-className="w-8 h-8 flex items-center justify-center
-rounded-full text-white text-[0.85rem] font-bold"
-style={{ background: "var(--gradient-brand)" }}
->
-{item.step}
-</div>
+                  <div
+                  className="w-8 h-8 flex items-center justify-center
+                  rounded-full text-white text-[0.85rem] font-bold"
+                  style={{ background: "var(--gradient-brand)" }}
+                  >
+                  {item.step}
+              </div>
 
-<div className="flex flex-col leading-tight">
+              <div className="flex flex-col leading-tight">
 
-<strong className="text-[0.9rem] font-semibold text-[var(--text-primary)]">
-{item.label}
-</strong>
+                  <strong className="text-[0.9rem] font-semibold text-[var(--text-primary)]">
+                  {item.label}
+                  </strong>
 
-<span className="text-[0.78rem] text-[var(--text-muted)]">
-{item.desc}
-</span>
+                  <span className="text-[0.78rem] text-[var(--text-muted)]">
+                  {item.desc}
+                  </span>
 
-</div>
+              </div>
 
-</div>
+          </div>
 
-))}
+              ))}
 
-</div>
+      </div>
 
 </div>
     </div>

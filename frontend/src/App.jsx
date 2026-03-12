@@ -10,7 +10,7 @@ export default function App() {
     <BrowserRouter>
       <div className="app-layout">
         <Sidebar />
-        <Header />
+        {/* <Header /> */}
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
