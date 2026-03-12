@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { HiOutlineSearch, HiOutlineDocumentText, HiOutlineExternalLink } from 'react-icons/hi';
 import { getReports } from '../api';
-import './Reports.css';
 
 export default function Reports() {
     const [company, setCompany] = useState('');
@@ -32,22 +31,40 @@ export default function Reports() {
                 <p>Search and browse historical intelligence reports by company name</p>
             </div>
 
-            <form className="card search-form" onSubmit={handleSearch}>
-                <div className="form-row">
-                    <div className="input-wrapper">
-                        <HiOutlineSearch className="input-icon" />
-                        <input
-                            className="input pipeline-input"
-                            placeholder="Search reports by company name..."
-                            value={company}
-                            onChange={e => setCompany(e.target.value)}
-                        />
-                    </div>
-                    <button type="submit" className="btn btn-primary" disabled={loading || !company.trim()}>
-                        {loading ? <span className="spinner" /> : <><HiOutlineSearch /> Search</>}
-                    </button>
-                </div>
-            </form>
+            <form className="card p-6" onSubmit={handleSearch}>
+
+<div className="flex items-center gap-4">
+
+  <div className="relative flex-1">
+
+    <HiOutlineSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--accent-secondary)] text-lg" />
+
+    <input
+      className="input pl-16 pr-4 py-3 h-[52px] w-full"
+      placeholder="Search reports by company name..."
+      value={company}
+      onChange={e => setCompany(e.target.value)}
+    />
+
+  </div>
+
+  <button
+    type="submit"
+    className="btn btn-primary h-[52px] px-6 whitespace-nowrap"
+    disabled={loading || !company.trim()}
+  >
+    {loading ? (
+      <span className="spinner" />
+    ) : (
+      <>
+        <HiOutlineSearch /> Search
+      </>
+    )}
+  </button>
+
+</div>
+
+</form>
 
             {loading && (
                 <div className="card" style={{ textAlign: 'center', padding: '40px' }}>

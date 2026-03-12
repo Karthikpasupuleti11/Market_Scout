@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { HiOutlinePlay, HiOutlineSparkles, HiOutlineExternalLink, HiOutlineShieldCheck, HiOutlineExclamationCircle } from 'react-icons/hi';
 import { runPipeline } from '../api';
-import './RunPipeline.css';
 
 export default function RunPipeline() {
     const [company, setCompany] = useState('');
@@ -35,30 +34,58 @@ export default function RunPipeline() {
                 <p>Enter a company name to discover their latest technical features from the past 7 days</p>
             </div>
 
-            <form className="run-form card" onSubmit={handleRun}>
-                <div className="form-row">
-                    <div className="input-wrapper">
-                        <HiOutlineSparkles className="input-icon" />
-                        <input
-                            type="text"
-                            className="input pipeline-input"
-                            placeholder="Enter company name (e.g. OpenAI, Google DeepMind, Anthropic)"
-                            value={company}
-                            onChange={e => setCompany(e.target.value)}
-                            disabled={loading}
-                            maxLength={200}
-                        />
-                    </div>
-                    <button type="submit" className="btn btn-primary run-btn" disabled={loading || !company.trim()}>
-                        {loading ? <><span className="spinner" /> Analyzing...</> : <><HiOutlinePlay /> Run Pipeline</>}
-                    </button>
-                </div>
-                <div className="form-hints">
-                    <span><HiOutlineShieldCheck /> OWASP-compliant input validation</span>
-                    <span>11-stage LangGraph pipeline</span>
-                    <span>NVIDIA LLaMA 3.3 70B</span>
-                </div>
-            </form>
+            <form className="run-form card p-6" onSubmit={handleRun}>
+
+  <div className="flex items-center gap-4">
+
+    <div className="relative flex-1">
+
+      <HiOutlineSparkles className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--accent-secondary)] text-lg" />
+
+      <input
+        type="text"
+        className="input pipeline-input pl-20 h-[52px] text-[0.95rem] w-full"
+        placeholder="Enter company name (e.g. OpenAI, Google DeepMind, Anthropic)"
+        value={company}
+        onChange={e => setCompany(e.target.value)}
+        disabled={loading}
+        maxLength={200}
+      />
+
+    </div>
+
+    <button
+      type="submit"
+      className="btn btn-primary run-btn h-[52px] px-6 whitespace-nowrap"
+      disabled={loading || !company.trim()}
+    >
+      {loading ? (
+        <>
+          <span className="spinner" /> Analyzing...
+        </>
+      ) : (
+        <>
+          <HiOutlinePlay /> Run Pipeline
+        </>
+      )}
+    </button>
+
+  </div>
+
+  <div className="flex gap-6 text-[0.8rem] text-[var(--text-muted)] mt-3">
+
+    <span className="flex items-center gap-1">
+      <HiOutlineShieldCheck />
+      OWASP-compliant input validation
+    </span>
+
+    <span>11-stage LangGraph pipeline</span>
+
+    <span>NVIDIA LLaMA 3.3 70B</span>
+
+  </div>
+
+</form> 
 
             {loading && (
                 <div className="card loading-card fade-in">
